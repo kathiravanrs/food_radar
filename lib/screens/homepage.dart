@@ -88,7 +88,6 @@ class _HomePageState extends State<HomePage> {
       for (Results r in result.results) {
         displayText = "$displayText ${r.group}";
       }
-      // displayText = result.results.toString();
     });
 
     log(responseData.toString());
