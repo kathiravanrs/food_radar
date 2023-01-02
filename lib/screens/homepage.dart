@@ -95,8 +95,7 @@ class _HomePageState extends State<HomePage> {
 
   Future<File> getImage() async {
     final ImagePicker picker = ImagePicker();
-    final XFile? image =
-        await picker.pickImage(maxHeight: 544, maxWidth: 544, source: ImageSource.gallery);
+    final XFile? image = await picker.pickImage(source: ImageSource.camera);
     File file = File(image!.path);
     setState(() {
       img = file;
