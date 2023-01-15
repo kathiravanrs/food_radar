@@ -4,11 +4,11 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_native_image/flutter_native_image.dart';
-import 'package:foodradar/model/api_result.dart';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 
 import '/helper/api_key.dart';
+import '../model/api_result.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -50,7 +50,7 @@ class _HomePageState extends State<HomePage> {
       floatingActionButton: FloatingActionButton(
         backgroundColor: Colors.white,
         onPressed: getImage,
-        child: const Icon(Icons.camera_alt_outlined),
+        child: const Icon(Icons.camera_alt),
       ),
       body: Padding(
         padding: const EdgeInsets.all(8.0),
@@ -59,8 +59,8 @@ class _HomePageState extends State<HomePage> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               if (imageSelected) Image.file(img),
-              TextButton(onPressed: crop, child: Text("Crop")),
-              TextButton(onPressed: uploadFile, child: Text("upload")),
+              TextButton(onPressed: crop, child: const Text("Crop")),
+              TextButton(onPressed: uploadFile, child: const Text("upload")),
               Text(displayText),
             ],
           ),
@@ -77,7 +77,8 @@ class _HomePageState extends State<HomePage> {
         ));
 
     File file = img;
-    request.files.add(http.MultipartFile.fromBytes('picture', File(file.path).readAsBytesSync(),
+    request.files.add(http.MultipartFile.fromBytes(
+        'picture', File(file.path).readAsBytesSync(),
         filename: file.path));
 
     var response = await request.send();
