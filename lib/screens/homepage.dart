@@ -55,7 +55,7 @@ class _HomePageState extends State<HomePage> {
       cameras = await availableCameras();
       cameraController = CameraController(cameras[0], ResolutionPreset.medium);
       cameraInitializer = cameraController?.initialize();
-      cameraController?.setFlashMode(FlashMode.off);
+      await cameraController?.setFlashMode(FlashMode.off);
     } on CameraException catch (e) {
       if (kDebugMode) {
         print(e);
