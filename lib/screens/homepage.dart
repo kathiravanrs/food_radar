@@ -22,19 +22,20 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  String displayText = "Image not uploaded yet";
   bool imageSelected = false;
   File? img;
   File? compressedFile;
   List<CameraDescription> cameras = [];
   CameraController? cameraController;
   Future<void>? cameraInitializer;
+  ApiResult? result;
 
   var appBar = AppBar(
     elevation: 0,
     centerTitle: true,
     title: const Text("Food Radar"),
   );
+
   var bottomBar = const BottomAppBar(
     shape: CircularNotchedRectangle(),
     notchMargin: 5,
@@ -53,7 +54,7 @@ class _HomePageState extends State<HomePage> {
   setupCamera() async {
     try {
       cameras = await availableCameras();
-      cameraController = CameraController(cameras[0], ResolutionPreset.medium);
+      cameraController = CameraController(cameras[0], ResolutionPreset.high);
       cameraInitializer = cameraController?.initialize();
       await cameraController?.setFlashMode(FlashMode.off);
     } on CameraException catch (e) {
@@ -79,14 +80,7 @@ class _HomePageState extends State<HomePage> {
     var response = await request.send();
     var decodedResponse = await http.Response.fromStream(response);
     final responseData = json.decode(decodedResponse.body);
-    var result = ApiResult.fromJson(responseData);
-    setState(() {
-      displayText = "";
-      for (Results r in result.results) {
-        displayText = "$displayText ${r.group}";
-      }
-    });
-
+    result = ApiResult.fromJson(responseData);
     log(responseData.toString());
   }
 
@@ -102,21 +96,54 @@ class _HomePageState extends State<HomePage> {
   }
 
   compress() async {
-    compressedFile = await FlutterNativeImage.compressImage(
-      img!.path,
-      quality: 80,
-      targetWidth: 544,
-      targetHeight: 544,
-    );
+    ImageProperties properties =
+        await FlutterNativeImage.getImageProperties(img!.path ?? "");
+    var offset = (properties.height! - properties.width!) / 2;
+    compressedFile = await FlutterNativeImage.cropImage(
+        img!.path, 0, offset.round(), 544, 544);
+    setState(() async {
+      img = compressedFile;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
+    var size = MediaQuery.of(context).size.width;
+    var aspRatio = cameraController?.value.aspectRatio;
+
+    var camPreview = FutureBuilder(
+      future: cameraInitializer,
+      builder: (ctx, snap) {
+        if (snap.connectionState == ConnectionState.done) {
+          return SizedBox(
+            width: size,
+            height: size,
+            child: ClipRRect(
+              borderRadius: const BorderRadius.all(Radius.circular(40)),
+              child: OverflowBox(
+                alignment: Alignment.center,
+                child: FittedBox(
+                  fit: BoxFit.fitWidth,
+                  child: SizedBox(
+                    width: size,
+                    height: size * aspRatio!,
+                    child: CameraPreview(cameraController!),
+                  ),
+                ),
+              ),
+            ),
+          );
+        } else {
+          return const Center(child: CircularProgressIndicator());
+        }
+      },
+    );
+
     return Scaffold(
       appBar: appBar,
       bottomNavigationBar: bottomBar,
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-      extendBody: true,
+      //
       floatingActionButton: FloatingActionButton(
         backgroundColor: Colors.white,
         onPressed: captureImage,
@@ -128,27 +155,29 @@ class _HomePageState extends State<HomePage> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              if (!imageSelected)
-                FutureBuilder(
-                  future: cameraInitializer,
-                  builder: (ctx, snap) {
-                    if (snap.connectionState == ConnectionState.done) {
-                      return CameraPreview(cameraController!);
-                    } else {
-                      return const Center(child: CircularProgressIndicator());
-                    }
-                  },
-                ),
-              if (imageSelected) Image.file(img!),
+              if (!imageSelected) camPreview,
               if (imageSelected)
-                TextButton(
-                    onPressed: () {
-                      setState(() {
-                        imageSelected = false;
-                      });
-                    },
-                    child: const Text("Try Again")),
-              Text(displayText),
+                ClipRRect(
+                  borderRadius: const BorderRadius.all(Radius.circular(40)),
+                  child: Image.file(img!),
+                ),
+              if (imageSelected)
+                Row(
+                  children: [
+                    TextButton(
+                        onPressed: () {
+                          setState(() {
+                            imageSelected = false;
+                          });
+                        },
+                        child: const Text("Try Again")),
+                    TextButton(
+                        onPressed: () {
+                          setState(() async {});
+                        },
+                        child: const Text("Scan")),
+                  ],
+                ),
             ],
           ),
         ),
