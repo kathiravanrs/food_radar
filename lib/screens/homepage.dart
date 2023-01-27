@@ -1,15 +1,15 @@
 import 'dart:convert';
-import 'dart:developer';
+import 'dart:developer' as dev;
 import 'dart:io';
+import 'dart:math';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_native_image/flutter_native_image.dart';
 import 'package:http/http.dart' as http;
-import 'package:image_picker/image_picker.dart';
 
 import '/helper/api_key.dart';
-import '../model/api_result.dart';
+import '/model/api_result.dart';
 import 'package:camera/camera.dart';
 
 class HomePage extends StatefulWidget {
@@ -85,8 +85,8 @@ class _HomePageState extends State<HomePage> {
     var response = await request.send();
     var decodedResponse = await http.Response.fromStream(response);
     final responseData = json.decode(decodedResponse.body);
+    dev.log(responseData.toString());
     result = ApiResult.fromJson(responseData);
-    log(responseData.toString());
   }
 
   captureImage() async {
@@ -94,28 +94,47 @@ class _HomePageState extends State<HomePage> {
     File file = File(image!.path);
     setState(() {
       img = file;
-      imageSelected = true;
     });
-    await compress();
+    await crop();
     await fetchResults();
   }
 
-  compress() async {
+  crop() async {
     ImageProperties properties =
         await FlutterNativeImage.getImageProperties(img!.path);
-    var offset = (properties.height! - properties.width!) / 2;
+    int height = properties.height ?? 0;
+    int width = properties.width ?? 0;
+
+    int minSize = min(height, width);
+    int originX = ((width - minSize) / 2).round();
+    int originY = ((height - minSize) / 2).round();
     compressedFile = await FlutterNativeImage.cropImage(
-        img!.path, 0, offset.round(), 544, 544);
-    setState(() async {
-      img = compressedFile;
+        img!.path, originX, originY, minSize, minSize);
+    await compress();
+    setState(() {
+      imageSelected = true;
     });
+    //
+    // final directory = await getApplicationDocumentsDirectory();
+    // final String path = directory.path;
+    // final result = await ImageGallerySaver.saveFile(img!.path);
+    // final result2 = await ImageGallerySaver.saveFile(compressedFile!.path);
+    // print(result);
+    // print(result2);
+  }
+
+  compress() async {
+    compressedFile = await FlutterNativeImage.compressImage(
+        compressedFile!.path,
+        targetHeight: 544,
+        targetWidth: 544);
   }
 
   @override
   Widget build(BuildContext context) {
     var size = MediaQuery.of(context).size.width;
 
-    var camPreview = FutureBuilder(
+    var camPreviewCropped = FutureBuilder(
       future: cameraInitializer,
       builder: (ctx, snap) {
         if (snap.connectionState == ConnectionState.done) {
@@ -131,7 +150,7 @@ class _HomePageState extends State<HomePage> {
                   fit: BoxFit.fitWidth,
                   child: SizedBox(
                     width: size,
-                    // height: size * aspRatio,
+                    height: size * aspRatio,
                     child: CameraPreview(cameraController!),
                   ),
                 ),
@@ -143,8 +162,20 @@ class _HomePageState extends State<HomePage> {
         }
       },
     );
+    var camPreview = FutureBuilder(
+      future: cameraInitializer,
+      builder: (ctx, snap) {
+        if (snap.connectionState == ConnectionState.done) {
+          aspRatio = cameraController?.value.aspectRatio ?? 16 / 9;
+          return CameraPreview(cameraController!);
+        } else {
+          return const Center(child: CircularProgressIndicator());
+        }
+      },
+    );
 
     if (cameraListGenerated) {
+      cameraController?.setFlashMode(FlashMode.off);
       return Scaffold(
         appBar: appBar,
         bottomNavigationBar: bottomBar,
@@ -161,12 +192,14 @@ class _HomePageState extends State<HomePage> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                if (!imageSelected) camPreview,
+                if (!imageSelected) camPreviewCropped,
                 if (imageSelected)
                   ClipRRect(
                     borderRadius: const BorderRadius.all(Radius.circular(40)),
-                    child: Image.file(img!),
+                    child: Image.file(compressedFile!),
                   ),
+                // if (imageSelected) Image.file(img!),
+                // if (imageSelected) Image.file(compressedFile!),
                 if (imageSelected)
                   Row(
                     children: [

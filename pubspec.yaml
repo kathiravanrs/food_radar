@@ -16,6 +16,8 @@ dependencies:
   image_picker: ^0.8.6
   flutter_native_image: ^0.0.6+1
   camera: ^0.10.1
+  path_provider: ^2.0.12
+  image_gallery_saver: ^1.7.1
 
 dev_dependencies:
   flutter_test:
