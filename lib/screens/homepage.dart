@@ -29,6 +29,8 @@ class _HomePageState extends State<HomePage> {
   CameraController? cameraController;
   Future<void>? cameraInitializer;
   ApiResult? result;
+  double aspRatio = 1;
+  bool cameraListGenerated = false;
 
   var appBar = AppBar(
     elevation: 0,
@@ -54,12 +56,15 @@ class _HomePageState extends State<HomePage> {
   setupCamera() async {
     try {
       cameras = await availableCameras();
-      cameraController = CameraController(cameras[0], ResolutionPreset.high);
+      setState(() {
+        cameraListGenerated = true;
+      });
+      cameraController = CameraController(cameras.first, ResolutionPreset.max);
       cameraInitializer = cameraController?.initialize();
-      await cameraController?.setFlashMode(FlashMode.off);
-    } on CameraException catch (e) {
+    } on CameraException {
       if (kDebugMode) {
-        print(e);
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text("Camera Failed!")));
       }
     }
   }
@@ -97,7 +102,7 @@ class _HomePageState extends State<HomePage> {
 
   compress() async {
     ImageProperties properties =
-        await FlutterNativeImage.getImageProperties(img!.path ?? "");
+        await FlutterNativeImage.getImageProperties(img!.path);
     var offset = (properties.height! - properties.width!) / 2;
     compressedFile = await FlutterNativeImage.cropImage(
         img!.path, 0, offset.round(), 544, 544);
@@ -109,12 +114,12 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     var size = MediaQuery.of(context).size.width;
-    var aspRatio = cameraController?.value.aspectRatio;
 
     var camPreview = FutureBuilder(
       future: cameraInitializer,
       builder: (ctx, snap) {
         if (snap.connectionState == ConnectionState.done) {
+          aspRatio = cameraController?.value.aspectRatio ?? 16 / 9;
           return SizedBox(
             width: size,
             height: size,
@@ -126,7 +131,7 @@ class _HomePageState extends State<HomePage> {
                   fit: BoxFit.fitWidth,
                   child: SizedBox(
                     width: size,
-                    height: size * aspRatio!,
+                    // height: size * aspRatio,
                     child: CameraPreview(cameraController!),
                   ),
                 ),
@@ -139,49 +144,53 @@ class _HomePageState extends State<HomePage> {
       },
     );
 
-    return Scaffold(
-      appBar: appBar,
-      bottomNavigationBar: bottomBar,
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-      //
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: Colors.white,
-        onPressed: captureImage,
-        child: const Icon(Icons.camera_alt),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(8.0),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              if (!imageSelected) camPreview,
-              if (imageSelected)
-                ClipRRect(
-                  borderRadius: const BorderRadius.all(Radius.circular(40)),
-                  child: Image.file(img!),
-                ),
-              if (imageSelected)
-                Row(
-                  children: [
-                    TextButton(
-                        onPressed: () {
-                          setState(() {
-                            imageSelected = false;
-                          });
-                        },
-                        child: const Text("Try Again")),
-                    TextButton(
-                        onPressed: () {
-                          setState(() async {});
-                        },
-                        child: const Text("Scan")),
-                  ],
-                ),
-            ],
+    if (cameraListGenerated) {
+      return Scaffold(
+        appBar: appBar,
+        bottomNavigationBar: bottomBar,
+        floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+        //
+        floatingActionButton: FloatingActionButton(
+          backgroundColor: Colors.white,
+          onPressed: captureImage,
+          child: const Icon(Icons.camera_alt),
+        ),
+        body: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                if (!imageSelected) camPreview,
+                if (imageSelected)
+                  ClipRRect(
+                    borderRadius: const BorderRadius.all(Radius.circular(40)),
+                    child: Image.file(img!),
+                  ),
+                if (imageSelected)
+                  Row(
+                    children: [
+                      TextButton(
+                          onPressed: () {
+                            setState(() {
+                              imageSelected = false;
+                            });
+                          },
+                          child: const Text("Try Again")),
+                      TextButton(
+                          onPressed: () {
+                            setState(() async {});
+                          },
+                          child: const Text("Scan")),
+                    ],
+                  ),
+              ],
+            ),
           ),
         ),
-      ),
-    );
+      );
+    } else {
+      return const Center(child: CircularProgressIndicator());
+    }
   }
 }

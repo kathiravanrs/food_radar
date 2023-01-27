@@ -19,7 +19,6 @@ class MyApp extends StatelessWidget {
       darkTheme: ThemeData(brightness: Brightness.dark),
       themeMode: ThemeMode.dark,
       theme: ThemeData(
-          useMaterial3: true
       ),
       routes: {
         HomePage.routeName: (context) => const HomePage(),
