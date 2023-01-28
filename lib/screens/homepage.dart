@@ -8,7 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_native_image/flutter_native_image.dart';
 import 'package:http/http.dart' as http;
 import 'package:image_gallery_saver/image_gallery_saver.dart';
-import 'package:path_provider/path_provider.dart';
+// import 'package:path_provider/path_provider.dart';
 
 import '/helper/api_key.dart';
 import '/model/api_result.dart';
@@ -117,12 +117,12 @@ class _HomePageState extends State<HomePage> {
       imageSelected = true;
     });
     //
-    final directory = await getApplicationDocumentsDirectory();
-    final String path = directory.path;
-    final result = await ImageGallerySaver.saveFile(img!.path);
-    final result2 = await ImageGallerySaver.saveFile(compressedFile!.path);
-    print(result);
-    print(result2);
+    // final directory = await getApplicationDocumentsDirectory();
+    // final String path = directory.path;
+    // final result = await ImageGallerySaver.saveFile(img!.path);
+    // final result2 = await ImageGallerySaver.saveFile(compressedFile!.path);
+    // print(result);
+    // print(result2);
   }
 
   compress() async {
@@ -215,10 +215,7 @@ class _HomePageState extends State<HomePage> {
                             });
                           },
                           child: const Text("Try Again")),
-                      TextButton(
-                          onPressed: () {
-                          },
-                          child: const Text("Scan")),
+                      TextButton(onPressed: () {}, child: const Text("Scan")),
                     ],
                   ),
               ],
