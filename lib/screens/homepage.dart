@@ -7,6 +7,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_native_image/flutter_native_image.dart';
 import 'package:http/http.dart' as http;
+import 'package:image_gallery_saver/image_gallery_saver.dart';
+import 'package:path_provider/path_provider.dart';
 
 import '/helper/api_key.dart';
 import '/model/api_result.dart';
@@ -56,45 +58,37 @@ class _HomePageState extends State<HomePage> {
   setupCamera() async {
     try {
       cameras = await availableCameras();
-      cameraController = CameraController(cameras.first, ResolutionPreset.max);
-      cameraInitializer = cameraController?.initialize();
-
       setState(() {
         cameraListGenerated = true;
       });
+      cameraController = CameraController(cameras.first, ResolutionPreset.max);
+      cameraInitializer = cameraController?.initialize();
     } on CameraException {
       if (kDebugMode) {
-        print("error");
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text("Camera Failed!")));
       }
     }
   }
 
-  setupCameraAfterInit() async{
-    await cameraController?.setFlashMode(FlashMode.off);
-    aspRatio = cameraController?.value.aspectRatio ?? 4 / 3;
-  }
-
   fetchResults() async {
-    print("fetch");
     var request = http.MultipartRequest(
         'POST',
         Uri.parse(
           'https://api-2445582032290.production.gw.apicast.io/v1/foodrecognition?user_key=$api_key',
         ));
 
+    File file = compressedFile!;
     request.files.add(
-      http.MultipartFile.fromBytes('picture', File(compressedFile!.path).readAsBytesSync(),
-          filename: compressedFile!.path),
+      http.MultipartFile.fromBytes('picture', File(file.path).readAsBytesSync(),
+          filename: file.path),
     );
 
     var response = await request.send();
-    print(response);
     var decodedResponse = await http.Response.fromStream(response);
     final responseData = json.decode(decodedResponse.body);
     dev.log(responseData.toString());
-    print(responseData.toString());
     result = ApiResult.fromJson(responseData);
-    print(result);
   }
 
   captureImage() async {
@@ -123,12 +117,12 @@ class _HomePageState extends State<HomePage> {
       imageSelected = true;
     });
     //
-    // final directory = await getApplicationDocumentsDirectory();
-    // final String path = directory.path;
-    // final result = await ImageGallerySaver.saveFile(img!.path);
-    // final result2 = await ImageGallerySaver.saveFile(compressedFile!.path);
-    // print(result);
-    // print(result2);
+    final directory = await getApplicationDocumentsDirectory();
+    final String path = directory.path;
+    final result = await ImageGallerySaver.saveFile(img!.path);
+    final result2 = await ImageGallerySaver.saveFile(compressedFile!.path);
+    print(result);
+    print(result2);
   }
 
   compress() async {
@@ -142,53 +136,56 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     var size = MediaQuery.of(context).size.width;
 
-    var camPreviewCropped = FutureBuilder(
-      future: cameraInitializer,
-      builder: (ctx, snap) {
-        if (snap.connectionState == ConnectionState.done) {
-          setupCameraAfterInit();
-
-          return SizedBox(
-            width: size,
-            height: size,
-            child: ClipRRect(
-              borderRadius: const BorderRadius.all(Radius.circular(40)),
-              child: OverflowBox(
-                alignment: Alignment.center,
-                child: FittedBox(
-                  fit: BoxFit.fitWidth,
-                  child: SizedBox(
-                    width: size,
-                    height: size * aspRatio,
-                    child: CameraPreview(cameraController!),
+    Widget camPreviewCropped() {
+      return FutureBuilder(
+        future: cameraInitializer,
+        builder: (ctx, snap) {
+          if (snap.connectionState == ConnectionState.done) {
+            aspRatio = cameraController?.value.aspectRatio ?? 16 / 9;
+            return SizedBox(
+              width: size,
+              height: size,
+              child: ClipRRect(
+                borderRadius: const BorderRadius.all(Radius.circular(40)),
+                child: OverflowBox(
+                  alignment: Alignment.center,
+                  child: FittedBox(
+                    fit: BoxFit.fitWidth,
+                    child: SizedBox(
+                      width: size,
+                      height: size * aspRatio,
+                      child: CameraPreview(cameraController!),
+                    ),
                   ),
                 ),
               ),
-            ),
-          );
+            );
+          } else {
+            return const Center(child: CircularProgressIndicator());
+          }
+        },
+      );
+    }
+
+    var camPreview = FutureBuilder(
+      future: cameraInitializer,
+      builder: (ctx, snap) {
+        if (snap.connectionState == ConnectionState.done) {
+          aspRatio = cameraController?.value.aspectRatio ?? 16 / 9;
+          return CameraPreview(cameraController!);
         } else {
           return const Center(child: CircularProgressIndicator());
         }
       },
     );
-    // var camPreview = FutureBuilder(
-    //   future: cameraInitializer,
-    //   builder: (ctx, snap) {
-    //     if (snap.connectionState == ConnectionState.done) {
-    //       aspRatio = cameraController?.value.aspectRatio ?? 16 / 9;
-    //       return CameraPreview(cameraController!);
-    //     } else {
-    //       return const Center(child: CircularProgressIndicator());
-    //     }
-    //   },
-    // );
 
     if (cameraListGenerated) {
-
+      cameraController?.setFlashMode(FlashMode.off);
       return Scaffold(
         appBar: appBar,
         bottomNavigationBar: bottomBar,
         floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+        //
         floatingActionButton: FloatingActionButton(
           backgroundColor: Colors.white,
           onPressed: captureImage,
@@ -200,7 +197,7 @@ class _HomePageState extends State<HomePage> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                if (!imageSelected) camPreviewCropped,
+                if (!imageSelected) camPreviewCropped(),
                 if (imageSelected)
                   ClipRRect(
                     borderRadius: const BorderRadius.all(Radius.circular(40)),
@@ -220,7 +217,6 @@ class _HomePageState extends State<HomePage> {
                           child: const Text("Try Again")),
                       TextButton(
                           onPressed: () {
-                            fetchResults();
                           },
                           child: const Text("Scan")),
                     ],
