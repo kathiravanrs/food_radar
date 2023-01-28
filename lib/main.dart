@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:foodradar/screens/results_page.dart';
 
 import 'screens/homepage.dart';
 
@@ -22,6 +23,7 @@ class MyApp extends StatelessWidget {
       ),
       routes: {
         HomePage.routeName: (context) => const HomePage(),
+        // ResultsPage.routeName: (context) => const ResultsPage(apiResult: apiResult),
       },
       initialRoute: HomePage.routeName,
     );

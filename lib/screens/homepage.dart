@@ -56,37 +56,45 @@ class _HomePageState extends State<HomePage> {
   setupCamera() async {
     try {
       cameras = await availableCameras();
+      cameraController = CameraController(cameras.first, ResolutionPreset.max);
+      cameraInitializer = cameraController?.initialize();
+
       setState(() {
         cameraListGenerated = true;
       });
-      cameraController = CameraController(cameras.first, ResolutionPreset.max);
-      cameraInitializer = cameraController?.initialize();
     } on CameraException {
       if (kDebugMode) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text("Camera Failed!")));
+        print("error");
       }
     }
   }
 
+  setupCameraAfterInit() async{
+    await cameraController?.setFlashMode(FlashMode.off);
+    aspRatio = cameraController?.value.aspectRatio ?? 4 / 3;
+  }
+
   fetchResults() async {
+    print("fetch");
     var request = http.MultipartRequest(
         'POST',
         Uri.parse(
           'https://api-2445582032290.production.gw.apicast.io/v1/foodrecognition?user_key=$api_key',
         ));
 
-    File file = compressedFile!;
     request.files.add(
-      http.MultipartFile.fromBytes('picture', File(file.path).readAsBytesSync(),
-          filename: file.path),
+      http.MultipartFile.fromBytes('picture', File(compressedFile!.path).readAsBytesSync(),
+          filename: compressedFile!.path),
     );
 
     var response = await request.send();
+    print(response);
     var decodedResponse = await http.Response.fromStream(response);
     final responseData = json.decode(decodedResponse.body);
     dev.log(responseData.toString());
+    print(responseData.toString());
     result = ApiResult.fromJson(responseData);
+    print(result);
   }
 
   captureImage() async {
@@ -138,7 +146,8 @@ class _HomePageState extends State<HomePage> {
       future: cameraInitializer,
       builder: (ctx, snap) {
         if (snap.connectionState == ConnectionState.done) {
-          aspRatio = cameraController?.value.aspectRatio ?? 16 / 9;
+          setupCameraAfterInit();
+
           return SizedBox(
             width: size,
             height: size,
@@ -162,25 +171,24 @@ class _HomePageState extends State<HomePage> {
         }
       },
     );
-    var camPreview = FutureBuilder(
-      future: cameraInitializer,
-      builder: (ctx, snap) {
-        if (snap.connectionState == ConnectionState.done) {
-          aspRatio = cameraController?.value.aspectRatio ?? 16 / 9;
-          return CameraPreview(cameraController!);
-        } else {
-          return const Center(child: CircularProgressIndicator());
-        }
-      },
-    );
+    // var camPreview = FutureBuilder(
+    //   future: cameraInitializer,
+    //   builder: (ctx, snap) {
+    //     if (snap.connectionState == ConnectionState.done) {
+    //       aspRatio = cameraController?.value.aspectRatio ?? 16 / 9;
+    //       return CameraPreview(cameraController!);
+    //     } else {
+    //       return const Center(child: CircularProgressIndicator());
+    //     }
+    //   },
+    // );
 
     if (cameraListGenerated) {
-      cameraController?.setFlashMode(FlashMode.off);
+
       return Scaffold(
         appBar: appBar,
         bottomNavigationBar: bottomBar,
         floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-        //
         floatingActionButton: FloatingActionButton(
           backgroundColor: Colors.white,
           onPressed: captureImage,
@@ -212,7 +220,7 @@ class _HomePageState extends State<HomePage> {
                           child: const Text("Try Again")),
                       TextButton(
                           onPressed: () {
-                            setState(() async {});
+                            fetchResults();
                           },
                           child: const Text("Scan")),
                     ],
