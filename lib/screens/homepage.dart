@@ -7,7 +7,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_native_image/flutter_native_image.dart';
 import 'package:http/http.dart' as http;
-import 'package:image_gallery_saver/image_gallery_saver.dart';
+// import 'package:image_gallery_saver/image_gallery_saver.dart';
 // import 'package:path_provider/path_provider.dart';
 
 import '/helper/api_key.dart';
@@ -99,6 +99,7 @@ class _HomePageState extends State<HomePage> {
     });
     await crop();
     await fetchResults();
+    await cameraController?.dispose();
   }
 
   crop() async {
@@ -209,7 +210,9 @@ class _HomePageState extends State<HomePage> {
                   Row(
                     children: [
                       TextButton(
-                          onPressed: () {
+                          onPressed: () async {
+                            await setupCamera();
+
                             setState(() {
                               imageSelected = false;
                             });
