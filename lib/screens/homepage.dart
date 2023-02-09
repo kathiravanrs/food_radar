@@ -1,15 +1,15 @@
 import 'dart:convert';
-import 'dart:developer' as dev;
 import 'dart:io';
 import 'dart:math';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_native_image/flutter_native_image.dart';
+import 'package:foodradar/screens/results_page.dart';
 import 'package:http/http.dart' as http;
-// import 'package:image_gallery_saver/image_gallery_saver.dart';
-// import 'package:path_provider/path_provider.dart';
 
+import '../helper/temp_data.dart';
+import '../widgets/app_bar.dart';
 import '/helper/api_key.dart';
 import '/model/api_result.dart';
 import 'package:camera/camera.dart';
@@ -25,29 +25,11 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   bool imageSelected = false;
-  File? img;
-  File? compressedFile;
   List<CameraDescription> cameras = [];
   CameraController? cameraController;
   Future<void>? cameraInitializer;
-  ApiResult? result;
   double aspRatio = 1;
   bool cameraListGenerated = false;
-
-  var appBar = AppBar(
-    elevation: 0,
-    centerTitle: true,
-    title: const Text("Food Radar"),
-  );
-
-  var bottomBar = const BottomAppBar(
-    shape: CircularNotchedRectangle(),
-    notchMargin: 5,
-    child: Padding(
-      padding: EdgeInsets.all(16.0),
-      child: Text(""),
-    ),
-  );
 
   @override
   void initState() {
@@ -87,7 +69,7 @@ class _HomePageState extends State<HomePage> {
     var response = await request.send();
     var decodedResponse = await http.Response.fromStream(response);
     final responseData = json.decode(decodedResponse.body);
-    dev.log(responseData.toString());
+    print(responseData.toString());
     result = ApiResult.fromJson(responseData);
   }
 
@@ -117,13 +99,6 @@ class _HomePageState extends State<HomePage> {
     setState(() {
       imageSelected = true;
     });
-    //
-    // final directory = await getApplicationDocumentsDirectory();
-    // final String path = directory.path;
-    // final result = await ImageGallerySaver.saveFile(img!.path);
-    // final result2 = await ImageGallerySaver.saveFile(compressedFile!.path);
-    // print(result);
-    // print(result2);
   }
 
   compress() async {
@@ -168,18 +143,6 @@ class _HomePageState extends State<HomePage> {
       );
     }
 
-    var camPreview = FutureBuilder(
-      future: cameraInitializer,
-      builder: (ctx, snap) {
-        if (snap.connectionState == ConnectionState.done) {
-          aspRatio = cameraController?.value.aspectRatio ?? 16 / 9;
-          return CameraPreview(cameraController!);
-        } else {
-          return const Center(child: CircularProgressIndicator());
-        }
-      },
-    );
-
     if (cameraListGenerated) {
       cameraController?.setFlashMode(FlashMode.off);
       return Scaffold(
@@ -200,25 +163,31 @@ class _HomePageState extends State<HomePage> {
               children: [
                 if (!imageSelected) camPreviewCropped(),
                 if (imageSelected)
-                  ClipRRect(
-                    borderRadius: const BorderRadius.all(Radius.circular(40)),
-                    child: Image.file(compressedFile!),
+                  Hero(
+                    tag: "compressedImage",
+                    child: ClipRRect(
+                      borderRadius: const BorderRadius.all(Radius.circular(40)),
+                      child: Image.file(compressedFile!),
+                    ),
                   ),
-                // if (imageSelected) Image.file(img!),
-                // if (imageSelected) Image.file(compressedFile!),
                 if (imageSelected)
                   Row(
                     children: [
                       TextButton(
                           onPressed: () async {
                             await setupCamera();
-
                             setState(() {
                               imageSelected = false;
                             });
                           },
                           child: const Text("Try Again")),
-                      TextButton(onPressed: () {}, child: const Text("Scan")),
+                      TextButton(
+                        onPressed: () {
+                          fetchResults();
+                          Navigator.pushNamed(context, ResultsPage.routeName);
+                        },
+                        child: const Text("Scan"),
+                      ),
                     ],
                   ),
               ],

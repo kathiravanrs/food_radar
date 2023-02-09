@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:foodradar/screens/results_page.dart';
 
+import 'helper/temp_data.dart';
 import 'screens/homepage.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
   runApp(const MyApp());
 }
 
@@ -23,6 +23,7 @@ class MyApp extends StatelessWidget {
       ),
       routes: {
         HomePage.routeName: (context) => const HomePage(),
+        ResultsPage.routeName: (context)=> ResultsPage(apiResult: result),
         // ResultsPage.routeName: (context) => const ResultsPage(apiResult: apiResult),
       },
       initialRoute: HomePage.routeName,
