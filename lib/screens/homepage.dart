@@ -71,6 +71,7 @@ class _HomePageState extends State<HomePage> {
     final responseData = json.decode(decodedResponse.body);
     print(responseData.toString());
     result = ApiResult.fromJson(responseData);
+
   }
 
   captureImage() async {
@@ -182,8 +183,9 @@ class _HomePageState extends State<HomePage> {
                           },
                           child: const Text("Try Again")),
                       TextButton(
-                        onPressed: () {
-                          fetchResults();
+                        onPressed: () async {
+                          await fetchResults();
+                          if (!mounted) return;
                           Navigator.pushNamed(context, ResultsPage.routeName);
                         },
                         child: const Text("Scan"),
