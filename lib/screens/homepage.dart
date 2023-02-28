@@ -4,6 +4,7 @@ import 'dart:math';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_native_image/flutter_native_image.dart';
 import 'package:foodradar/screens/results_page.dart';
 import 'package:http/http.dart' as http;
@@ -34,8 +35,30 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
+
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+    ]);
     setupCamera();
   }
+
+  @override
+  void dispose() {
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.landscapeRight,
+      DeviceOrientation.landscapeLeft,
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+    ]);
+    super.dispose();
+  }
+
+  // @override
+  // void initState() {
+  //   super.initState();
+  //
+  // }
 
   setupCamera() async {
     try {
@@ -71,7 +94,6 @@ class _HomePageState extends State<HomePage> {
     final responseData = json.decode(decodedResponse.body);
     print(responseData.toString());
     result = ApiResult.fromJson(responseData);
-
   }
 
   captureImage() async {

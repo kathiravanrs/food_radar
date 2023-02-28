@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:foodradar/model/api_result.dart';
 import 'package:foodradar/widgets/app_bar.dart';
-
 import '../helper/temp_data.dart';
 
 class ResultsPage extends StatefulWidget {
@@ -26,13 +25,16 @@ class _ResultsPageState extends State<ResultsPage> {
 
   List<Widget> foodGroup = [];
 
-  buildFoodGroups(){
+  late GridView gridView;
+
+  buildFoodGroups() {
     List<Results>? res = widget.apiResult?.results;
-    for(Results results in res!){
-      foodGroup.add(Text(results.group));
+    for (Results results in res!) {
+      var chip = Chip(label: Text(results.group));
+      foodGroup.add(chip);
+
     }
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -53,7 +55,16 @@ class _ResultsPageState extends State<ResultsPage> {
                   const Text("Contains Food"),
               ],
             ),
-            if (widget.apiResult?.isFood == true) Column(children: foodGroup),
+            if (widget.apiResult?.isFood == true)
+              SizedBox(height: 150,
+                child: Expanded(
+                  child: GridView.count(
+                    scrollDirection: Axis.horizontal,
+                    crossAxisCount: 2,
+                    children: foodGroup,
+                  ),
+                ),
+              ),
           ],
         ),
       ),
